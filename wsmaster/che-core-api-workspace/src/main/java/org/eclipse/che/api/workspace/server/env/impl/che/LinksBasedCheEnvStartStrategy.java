@@ -54,20 +54,20 @@ public class LinksBasedCheEnvStartStrategy implements CheEnvStartStrategy {
                 // todo if type is not `docker` put machine in the end of start queue
                 // process not yet processed machines only
                 if (machinesLeft.contains(config.getName())) {
-                    if (config.getMachineLinks().size() == 0) {
+                    if (config.getDependsOn().size() == 0) {
                         // no links - smallest weight 0
                         weights.put(config.getName(), 0);
                         machinesLeft.remove(config.getName());
                         weightEvaluatedInCycleRun = true;
                     } else {
-                        // machine has links - check if it has not weighted link
-                        Optional<String> nonWeightedLink = config.getMachineLinks()
+                        // machine has depends on entry - check if it has not weighted connection
+                        Optional<String> nonWeightedLink = config.getDependsOn()
                                                                  .stream()
                                                                  .filter(machinesLeft::contains)
                                                                  .findAny();
                         if (!nonWeightedLink.isPresent()) {
-                            // all links are weighted - lets evaluate current machine
-                            Optional<String> maxWeight = config.getMachineLinks()
+                            // all connections are weighted - lets evaluate current machine
+                            Optional<String> maxWeight = config.getDependsOn()
                                                                .stream()
                                                                .max((o1, o2) -> weights.get(o1).compareTo(weights.get(o2)));
                             // optional can't empty because size of the list is checked above
