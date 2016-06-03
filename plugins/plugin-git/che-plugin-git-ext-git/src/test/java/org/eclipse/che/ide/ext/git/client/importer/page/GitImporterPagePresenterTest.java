@@ -29,7 +29,6 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -258,7 +257,7 @@ public class GitImporterPagePresenterTest {
         assertEquals("directory", parameters.get("keepDirectory"));
         verify(dataObject).withType("blank");
         verify(view).highlightDirectoryNameField(eq(false));
-        verify(view).focusDirectoryNameFiend();
+        verify(view).focusDirectoryNameField();
     }
 
     @Test
@@ -305,21 +304,32 @@ public class GitImporterPagePresenterTest {
     }
 
     /**
-     * Branch name field must become enabled when Branch is checked.
+     * Branch name field must become enabled when Branch checkbox is selected.
      */
     @Test
     public void branchSelectedTest() {
+        Map<String, String> parameters = new HashMap<>();
+        when(source.getParameters()).thenReturn(parameters);
+        when(view.getBranchName()).thenReturn("someBranch");
+
         presenter.branchSelected(true);
-        verify(view).enableBranchNameField(true);
+
+        assertEquals("someBranch", parameters.get("branch"));
+        verify(view).focusBranchNameField();
     }
 
     /**
-     * Branch name field must become disabled when Branch is unchecked.
+     * Branch name field must become disabled when Branch checkbox is unselected.
      */
     @Test
     public void branchNotSelectedTest() {
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("branch", "someBranch");
+        when(source.getParameters()).thenReturn(parameters);
+
         presenter.branchSelected(false);
-        verify(view).enableBranchNameField(false);
+
+        assertTrue(parameters.isEmpty());
     }
 
     /**
