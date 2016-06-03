@@ -308,7 +308,8 @@ public class DockerInstanceProvider implements InstanceProvider {
     }
 
     protected Instance createInstanceFromImage(final Machine machine, String machineContainerName,
-                                        final LineConsumer creationLogsOutput) throws NotFoundException, MachineException {
+                                               final LineConsumer creationLogsOutput) throws NotFoundException,
+                                                                                             MachineException {
         final DockerMachineSource dockerMachineSource = new DockerMachineSource(machine.getConfig().getSource());
 
         if (snapshotUseRegistry) {
@@ -322,7 +323,7 @@ public class DockerInstanceProvider implements InstanceProvider {
             docker.tag(TagParams.create(fullNameOfPulledImage, machineImageName));
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage(), e);
-            throw new MachineException("Can't create machine from snapshot.");
+            throw new MachineException("Can't create machine from image.");
         }
         try {
             // remove unneeded tag
@@ -505,7 +506,6 @@ public class DockerInstanceProvider implements InstanceProvider {
         try {
             // todo
             // do not create network for 1 container env
-            // remove network
             // support overlay + default network + bridge
 
             String networkName = machine.getWorkspaceId();

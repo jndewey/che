@@ -48,8 +48,8 @@ public class CheEnvironmentValidator implements EnvironmentValidator {
     public String getType() {
         return CheEnvironmentEngine.ENVIRONMENT_TYPE;
     }
-    // todo validate links in the same way as machine name
-    // todo validate that env contains machine with name equal to link
+    // todo validate depends on in the same way as machine name
+    // todo validate that env contains machine with name equal to dependency
     // todo use strategy to check if order is valid
     @Override
     public void validate(Environment env) throws BadRequestException {
@@ -78,7 +78,6 @@ public class CheEnvironmentValidator implements EnvironmentValidator {
         }
     }
 
-    // todo change to new entity that contains network
     public List<MachineConfig> parse(Environment env) throws IllegalArgumentException {
         List<? extends MachineConfig> machines;
         if (env.getConfig() != null) {

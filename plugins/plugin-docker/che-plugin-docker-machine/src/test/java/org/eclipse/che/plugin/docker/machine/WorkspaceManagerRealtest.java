@@ -36,7 +36,7 @@ import org.eclipse.che.api.workspace.server.WorkspaceRuntimes;
 import org.eclipse.che.api.workspace.server.env.impl.che.CheEnvStartStrategy;
 import org.eclipse.che.api.workspace.server.env.impl.che.CheEnvironmentEngine;
 import org.eclipse.che.api.workspace.server.env.impl.che.CheEnvironmentValidator;
-import org.eclipse.che.api.workspace.server.env.impl.che.LinksBasedCheEnvStartStrategy;
+import org.eclipse.che.api.workspace.server.env.impl.che.DependenciesBasedCheEnvStartStrategy;
 import org.eclipse.che.api.workspace.server.model.impl.EnvironmentImpl;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceConfigImpl;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceImpl;
@@ -114,7 +114,7 @@ public class WorkspaceManagerRealtest {
         connectorConfiguration = new DockerConnectorConfiguration(new InitialAuthConfig(),
                                                                   new DefaultNetworkFinder());
         dockerConnector = new DockerConnector(connectorConfiguration, new DockerConnectionFactory(connectorConfiguration));
-        envStartStrategy = new LinksBasedCheEnvStartStrategy();
+        envStartStrategy = new DependenciesBasedCheEnvStartStrategy();
         recipeDownloader = new RecipeDownloader(new URI("http://localhost:8080/api"));
         recipeRetriever = new RecipeRetriever(recipeDownloader);
         instanceProvider = new DockerInstanceProvider(dockerConnector,

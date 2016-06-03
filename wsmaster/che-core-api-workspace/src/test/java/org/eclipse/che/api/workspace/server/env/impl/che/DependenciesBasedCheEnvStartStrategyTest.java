@@ -31,16 +31,16 @@ import static org.testng.Assert.assertEquals;
 /**
  * author Alexander Garagatyi
  */
-public class LinksBasedCheEnvStartStrategyTest {
-    private LinksBasedCheEnvStartStrategy strategy;
+public class DependenciesBasedCheEnvStartStrategyTest {
+    private DependenciesBasedCheEnvStartStrategy strategy;
 
     @BeforeMethod
     public void setUp() throws Exception {
-        strategy = new LinksBasedCheEnvStartStrategy();
+        strategy = new DependenciesBasedCheEnvStartStrategy();
     }
 
     @Test
-    public void shouldNotChangeConfigsWithoutLinks() throws Exception {
+    public void shouldNotChangeConfigsWithoutDependencies() throws Exception {
         List<String> expectedMachines = asList("m1", "m2", "devM", "m3");
         List<MachineConfig> machines = new ArrayList<>();
         for (String expectedMachineName : expectedMachines) {
@@ -54,11 +54,11 @@ public class LinksBasedCheEnvStartStrategyTest {
     }
 
     @Test(dataProvider = "validConfigsProvider")
-    public void shouldBeAbleToOrderMachinesWithLinks(Map<String, List<String>> machinesNamesLinks,
+    public void shouldBeAbleToOrderMachinesWithDependencies(Map<String, List<String>> machinesNamesDependencies,
                                                      int devPosition,
                                                      List<String> expectedOrder) throws Exception {
         List<MachineConfig> machines = new ArrayList<>();
-        for (Map.Entry<String, List<String>> machineNameLink : machinesNamesLinks.entrySet()) {
+        for (Map.Entry<String, List<String>> machineNameLink : machinesNamesDependencies.entrySet()) {
             machines.add(createConfig(machineNameLink.getKey(), machineNameLink.getValue()));
         }
         ((MachineConfigImpl) machines.get(devPosition)).setDev(true);
@@ -138,19 +138,17 @@ public class LinksBasedCheEnvStartStrategyTest {
                                 .setDev(false)
                                 .setName(machineName)
                                 .setType("docker")
-                                .setSource(new MachineSourceImpl("dockerfile",
-                                                                 "https://gist.githubusercontent.com/garagatyi/74ed87761d927985875b3500c7a621f2/raw/e20ce8427c6a9f3ab50f48b88382ceb7ed496ea3/Dockerfile"))
+                                .setSource(new MachineSourceImpl("image").setLocation("codenvy/ubuntu_jdk8"))
                                 .build();
     }
 
-    private MachineConfigImpl createConfig(String machineName, List<String> links) {
+    private MachineConfigImpl createConfig(String machineName, List<String> dependencies) {
         return MachineConfigImpl.builder()
                                 .setDev(false)
                                 .setName(machineName)
                                 .setType("docker")
-                                .setSource(new MachineSourceImpl("dockerfile",
-                                                                 "https://gist.githubusercontent.com/garagatyi/74ed87761d927985875b3500c7a621f2/raw/e20ce8427c6a9f3ab50f48b88382ceb7ed496ea3/Dockerfile"))
-                                .setMachineLinks(links)
+                                .setSource(new MachineSourceImpl("image").setLocation("codenvy/ubuntu_jdk8"))
+                                .setDependsOn(dependencies)
                                 .build();
     }
 }

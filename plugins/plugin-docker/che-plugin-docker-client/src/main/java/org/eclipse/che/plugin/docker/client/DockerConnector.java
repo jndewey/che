@@ -16,6 +16,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 
 import org.apache.commons.codec.binary.Base64;
@@ -124,7 +125,7 @@ import static javax.ws.rs.core.Response.Status.OK;
  */
 @Singleton
 public class DockerConnector {
-    private static final Logger LOG = LoggerFactory.getLogger(DockerConnector.class);
+    private static final Logger LOG  = LoggerFactory.getLogger(DockerConnector.class);
     // Docker uses uppercase in first letter in names of json objects, e.g. {"Id":"123"} instead of {"id":"123"}
     private static final Gson   GSON = new GsonBuilder().disableHtmlEscaping()
                                                         .setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE)
@@ -232,7 +233,7 @@ public class DockerConnector {
             addQueryParamIfNotNull(connection, "since", params.getSince());
             addQueryParamIfNotNull(connection, "before", params.getBefore());
             if (filters != null) {
-                connection.query("filters", urlPathSegmentEscaper().escape(GSON.toJson(filters.getFilters())));
+                connection.query("filters", urlPathSegmentEscaper().escape(toJson(filters.getFilters())));
             }
             DockerResponse response = connection.request();
             final int status = response.getStatus();
@@ -722,7 +723,7 @@ public class DockerConnector {
         final ExecConfig execConfig = new ExecConfig().withCmd(params.getCmd())
                                                       .withAttachStderr(params.isDetach() == Boolean.FALSE)
                                                       .withAttachStdout(params.isDetach() == Boolean.FALSE);
-        byte[] entityBytesArray = GSON.toJson(execConfig).getBytes();
+        byte[] entityBytesArray = toJson(execConfig).getBytes();
 
         try (DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
                                                             .method("POST")
@@ -758,7 +759,7 @@ public class DockerConnector {
         final ExecStart execStart = new ExecStart().withDetach(params.isDetach() == Boolean.TRUE)
                                                    .withTty(params.isTty() == Boolean.TRUE);
 
-        byte[] entityBytesArray = GSON.toJson(execStart).getBytes();
+        byte[] entityBytesArray = toJson(execStart).getBytes();
         try (DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
                                                             .method("POST")
                                                             .path("/exec/" + params.getExecId() + "/start")
@@ -1021,7 +1022,7 @@ public class DockerConnector {
             addQueryParamIfNotNull(connection, "since", params.getSinceSecond());
             addQueryParamIfNotNull(connection, "until", params.getUntilSecond());
             if (filters != null) {
-                connection.query("filters", urlPathSegmentEscaper().escape(GSON.toJson(filters.getFilters())));
+                connection.query("filters", urlPathSegmentEscaper().escape(toJson(filters.getFilters())));
             }
             final DockerResponse response = connection.request();
             if (OK.getStatusCode() != response.getStatus()) {
@@ -1123,16 +1124,17 @@ public class DockerConnector {
                               URI dockerDaemonUri) throws IOException, InterruptedException {
         AuthConfigs authConfigs = firstNonNull(params.getAuthConfigs(), initialAuthConfig.getAuthConfigs());
         try (InputStream tarInput = new FileInputStream(tar);
-             DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
-                                                            .method("POST")
-                                                            .path("/build")
-                                                            .query("rm", 1)
-                                                            .query("forcerm", 1)
-                                                            .header("Content-Type", "application/x-compressed-tar")
-                                                            .header("Content-Length", tar.length())
-                                                            .header("X-Registry-Config",
-                                                                    Base64.encodeBase64String(GSON.toJson(authConfigs).getBytes()))
-                                                            .entity(tarInput)) {
+             DockerConnection connection = connectionFactory
+                     .openConnection(dockerDaemonUri)
+                     .method("POST")
+                     .path("/build")
+                     .query("rm", 1)
+                     .query("forcerm", 1)
+                     .header("Content-Type", "application/x-compressed-tar")
+                     .header("Content-Length", tar.length())
+                     .header("X-Registry-Config", Base64.encodeBase64String(toJson(authConfigs).getBytes()))
+                     .entity(tarInput)) {
+
             addQueryParamIfNotNull(connection, "t", params.getRepository());
             addQueryParamIfNotNull(connection, "memory", params.getMemoryLimit());
             addQueryParamIfNotNull(connection, "memswap", params.getMemorySwapLimit());
@@ -1478,7 +1480,7 @@ public class DockerConnector {
                                                             .method("GET")
                                                             .path("/networks")) {
             if (filters != null) {
-                connection.query("filters", urlPathSegmentEscaper().escape(GSON.toJson(filters.getFilters())));
+                connection.query("filters", urlPathSegmentEscaper().escape(toJson(filters.getFilters())));
             }
             DockerResponse response = connection.request();
             if (response.getStatus() / 100 != 2) {
@@ -1523,7 +1525,7 @@ public class DockerConnector {
      *         when problems occurs with docker api calls
      */
     public NetworkCreated createNetwork(CreateNetworkParams params) throws IOException {
-        byte[] entityBytesArray = GSON.toJson(params.getNetwork()).getBytes();
+        byte[] entityBytesArray = toJson(params.getNetwork()).getBytes();
 
         try (DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
                                                             .method("POST")
@@ -1556,7 +1558,7 @@ public class DockerConnector {
      *         when problems occurs with docker api calls
      */
     public void connectContainerToNetwork(ConnectContainerToNetworkParams params) throws IOException {
-        byte[] entityBytesArray = GSON.toJson(params.getConnectContainer()).getBytes();
+        byte[] entityBytesArray = toJson(params.getConnectContainer()).getBytes();
 
         try (DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
                                                             .method("POST")
@@ -1588,7 +1590,7 @@ public class DockerConnector {
      *         when problems occurs with docker api calls
      */
     public void disconnectContainerFromNetwork(DisconnectContainerFromNetworkParams params) throws IOException {
-        byte[] entityBytesArray = GSON.toJson(params.getDisconnectContainer()).getBytes();
+        byte[] entityBytesArray = toJson(params.getDisconnectContainer()).getBytes();
 
         try (DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
                                                             .method("POST")
@@ -1725,7 +1727,7 @@ public class DockerConnector {
     }
 
     private ContainerCreated createContainer(final CreateContainerParams params, URI dockerDaemonUri) throws IOException {
-        byte[] entityBytesArray = GSON.toJson(params.getContainerConfig()).getBytes();
+        byte[] entityBytesArray = toJson(params.getContainerConfig()).getBytes();
 
         try (DockerConnection connection = connectionFactory.openConnection(dockerDaemonUri)
                                                             .method("POST")
@@ -1751,7 +1753,7 @@ public class DockerConnector {
                                     URI dockerDaemonUri) throws IOException {
         final List<Pair<String, ?>> headers = new ArrayList<>(2);
         headers.add(Pair.of("Content-Type", MediaType.APPLICATION_JSON));
-        final String entity = (hostConfig == null) ? "{}" : GSON.toJson(hostConfig);
+        final String entity = (hostConfig == null) ? "{}" : toJson(hostConfig);
         byte[] entityBytesArray = entity.getBytes();
         headers.add(Pair.of("Content-Length", entityBytesArray.length));
 
@@ -1815,6 +1817,8 @@ public class DockerConnector {
     <T> T parseResponseStreamAndClose(InputStream inputStream, Class<T> clazz) throws IOException {
         try (InputStreamReader reader = new InputStreamReader(inputStream)) {
             return GSON.fromJson(reader, clazz);
+        } catch (JsonParseException e) {
+            throw new IOException(e.getLocalizedMessage(), e);
         }
     }
 
@@ -1822,6 +1826,8 @@ public class DockerConnector {
     <T> List<T> parseResponseStreamAsListAndClose(InputStream inputStream, Type type) throws IOException {
         try (InputStreamReader reader = new InputStreamReader(inputStream)) {
             return GSON.fromJson(reader, type);
+        } catch (JsonParseException e) {
+            throw new IOException(e.getLocalizedMessage(), e);
         }
     }
 
@@ -1864,6 +1870,22 @@ public class DockerConnector {
     private void addQueryParamIfNotNull(DockerConnection connection, String queryParamName, Boolean paramValue) {
         if (paramValue != null) {
             connection.query(queryParamName, paramValue ? 1 : 0);
+        }
+    }
+
+    /**
+     * Serializes object into JSON.
+     * Needed to avoid usage try catch blocks with {@link JsonParseException} runtime exception catching.
+     *
+     * @param object object that should be converted into JSON
+     * @return json as a string
+     * @throws IOException if serialization to JSON fails
+     */
+    private String toJson(Object object) throws IOException {
+        try {
+            return GSON.toJson(object);
+        } catch (JsonParseException e) {
+            throw new IOException(e.getLocalizedMessage(), e);
         }
     }
 }

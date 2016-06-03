@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * author Alexander Garagatyi
  */
-public class LinksBasedCheEnvStartStrategy implements CheEnvStartStrategy {
+public class DependenciesBasedCheEnvStartStrategy implements CheEnvStartStrategy {
     @Override
     public List<MachineConfig> order(List<MachineConfig> configs) throws IllegalArgumentException {
         configs = new ArrayList<>(configs);

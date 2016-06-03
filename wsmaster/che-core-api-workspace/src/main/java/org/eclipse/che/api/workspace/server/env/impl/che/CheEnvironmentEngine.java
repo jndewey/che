@@ -12,6 +12,7 @@ package org.eclipse.che.api.workspace.server.env.impl.che;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Striped;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.eclipse.che.api.core.BadRequestException;
 import org.eclipse.che.api.core.ConflictException;
@@ -38,6 +39,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -80,7 +84,6 @@ public class CheEnvironmentEngine implements EnvironmentEngine {
         return ENVIRONMENT_TYPE;
     }
 
-    //todo add sorting of machines on start by links
     // todo what to do if machine needed for other services failed to start
 
 
@@ -167,19 +170,50 @@ public class CheEnvironmentEngine implements EnvironmentEngine {
     @VisibleForTesting
     void cleanup() {
         isPreDestroyInvoked = true;
+        final ExecutorService destroyMachinesExecutor =
+                Executors.newFixedThreadPool(2 * Runtime.getRuntime().availableProcessors(),
+                                             new ThreadFactoryBuilder().setNameFormat("DestroyMachine-%d")
+                                                                       .setDaemon(false)
+                                                                       .build());
         // Acquire all the locks
         for (int i = 0; i < STRIPED.size(); i++) {
             STRIPED.getAt(i).writeLock().lock();
         }
         try {
             startQueues.clear();
+
+            try {
+                for (MachineImpl machine : machineManager.getMachines()) {
+                    destroyMachinesExecutor.execute(() -> {
+                        try {
+                            machineManager.destroy(machine.getId(), false);
+                        } catch (NotFoundException ignore) {
+                            // it is ok, machine has been already destroyed
+                        } catch (Exception e) {
+                            LOG.warn(e.getLocalizedMessage());
+                        }
+                    });
+                }
+            } catch (MachineException e) {
+                LOG.error(e.getLocalizedMessage(), e);
+            }
+            destroyMachinesExecutor.shutdown();
         } finally {
             // Release all the locks
             for (int i = 0; i < STRIPED.size(); i++) {
                 STRIPED.getAt(i).writeLock().unlock();
             }
         }
-        // todo stop & cleanup machines
+        try {
+            if (!destroyMachinesExecutor.awaitTermination(50, TimeUnit.SECONDS)) {
+                destroyMachinesExecutor.shutdownNow();
+                if (!destroyMachinesExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate destroy machines pool");
+                }
+            }
+        } catch (InterruptedException e) {
+            destroyMachinesExecutor.shutdownNow();
+        }
     }
 
     private List<Machine> toListOfMachines(List<MachineImpl> machineImpls) {
